@@ -11,9 +11,9 @@ using System.Windows.Forms;
 
 namespace Unity_Launcher
 {
-    public partial class Form1 : Form
+    public partial class UnityVersionLauncher : Form
     {
-        public Form1()
+        public UnityVersionLauncher()
         {
             InitializeComponent();
 
@@ -32,6 +32,10 @@ namespace Unity_Launcher
             // Clear the combobox
             comboBox1.Items.Clear();
 
+            // Check if path is empty (happens e.g. when no properties settings have been set yet at first time launch)
+            if (string.IsNullOrEmpty(path))
+                return;
+
             // Add the available unity versions
             List<string> _unityVersions = Directory.GetDirectories(path).Where(x => x.ToLower().Contains("unity")).ToList();
             foreach (string version in _unityVersions)
@@ -43,6 +47,13 @@ namespace Unity_Launcher
 
         private void button2_Click(object sender, EventArgs e)
         {
+            // Make sure a version is selected
+            if (comboBox1.SelectedItem == null)
+            {
+                MessageBox.Show("No Unity version was selected to launch.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             // Retrieve the unity executable that matches the currently selected folder
             ComboBoxItem _selectedComboBoxItem = (ComboBoxItem)comboBox1.SelectedItem;
             DirectoryInfo _directoryInfo = new DirectoryInfo(_selectedComboBoxItem.Value);
