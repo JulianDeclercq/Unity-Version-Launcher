@@ -43,10 +43,14 @@ namespace Unity_Launcher
             return target;
         }
 
+        /// <summary>
+        /// Remove "Unity_" from the folder name
+        /// If this is an f version, remove that from the name (this application doesn't consider f versions as different)
+        /// </summary>
+        /// <param name="name">The directory name to be cleaned</param>
+        /// <returns>The cleaned directory name</returns>
         private string CleanDirectoryName(string name)
         {
-            // Remove "Unity_" from the folder name
-            // If this is an f version, remove that from the name (this application doesn't consider f versions as different)
             return RemoveTrailingF(name.TrimStart("Unity_".ToCharArray()));
         }
 
@@ -60,8 +64,15 @@ namespace Unity_Launcher
                 return;
 
             // Add the available unity versions
-            List<string> _unityVersions =
-                Directory.GetDirectories(path).Where(x => x.ToLower().Contains("unity")).ToList();
+            List<string> _unityVersions = Directory.GetDirectories(path).Where(x => x.ToLower().Contains("unity")).ToList();
+
+            // Sort alphabetically
+            _unityVersions.Sort();
+
+            // Put 2017 versions as last
+            _unityVersions = _unityVersions.OrderBy(x => x.Contains("2017")).ToList();
+
+            // Add the versions as items to the combobox
             foreach (string fullPath in _unityVersions)
             {
                 // Add the name of the path to the choices
@@ -73,6 +84,11 @@ namespace Unity_Launcher
             }
         }
 
+        /// <summary>
+        /// Find the unity executable from given combobox selection.
+        /// </summary>
+        /// <param name="comboBoxItem">The combobox from which the directory can be retrieved.</param>
+        /// <returns>FileInfo object for the unity executable</returns>
         private FileInfo FindUnityExecutable(ComboBoxItem comboBoxItem)
         {
             // Retrieve the directory from the comboboxItem
@@ -93,6 +109,11 @@ namespace Unity_Launcher
             return unityExecutable;
         }
 
+        /// <summary>
+        /// Launch the selected Unity version with a button click.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void LaunchButtonClick(object sender, EventArgs e)
         {
             // Make sure a version is selected
@@ -114,6 +135,11 @@ namespace Unity_Launcher
             Application.Exit();
         }
 
+        /// <summary>
+        /// Select the unity installation directory from the toolstrip menu.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void ChangeToolStripMenuItemClick(object sender, EventArgs e)
         {
             // Select unity installation directory
@@ -139,6 +165,13 @@ namespace Unity_Launcher
 
         private void DragDropCallback(object sender, DragEventArgs e)
         {
+            // If the unity installation folder hasn't been selected yet, the launching will never work
+            if (versionSelectorBox.Items.Count == 0)
+            {
+                MessageBox.Show("Please select the Unity installation folder before dragging projects.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             // Retrieve the dropped files
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
@@ -169,6 +202,7 @@ namespace Unity_Launcher
                     string versionInfo = streamReader.ReadLine();
                     versionInfo = RemoveTrailingF(versionInfo);
 
+                    // Loop through all installed unity versions
                     foreach (var installationFolder in versionSelectorBox.Items)
                     {
                         // Retrieve the unityVersion from the installation folder name
@@ -177,7 +211,7 @@ namespace Unity_Launcher
                         // Check if it matches a currently installed version of unity
                         if (versionInfo.Equals($"m_EditorVersion: {unityVersion}"))
                         {
-                            // Find the executable.
+                            // Find the executable
                             FileInfo unityExecutable = FindUnityExecutable((ComboBoxItem)installationFolder);
 
                             // Run the unity project
@@ -187,6 +221,10 @@ namespace Unity_Launcher
                             Application.Exit();
                         }
                     }
+
+                    // If the loop has ended and no version has been launched, warn the user
+                    string remove = "m_EditorVersion: ";
+                    MessageBox.Show($"Required Unity version {versionInfo.TrimStart(remove.ToCharArray())} not found.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (IOException)
